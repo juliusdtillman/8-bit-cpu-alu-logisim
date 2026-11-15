@@ -1,38 +1,60 @@
 # 8 Bit CPU and ALU in Logisim
 
-I built this circuit in Logisim to get a better understanding of how a processor works. It has two 8 bit registers that hold numbers and an ALU that can do math and logic operations. A 4 bit opcode lets me choose what the circuit does. I can also reset the registers, check the result flags, and save a result back into Register A.
+A digital logic project that shows how a small processor datapath stores numbers, performs operations, and handles results. I used Logisim to work with registers, an ALU, control signals, and status flags so I could see how these parts work together.
 
-This is a small CPU datapath, not a complete CPU that can run programs. It does not have instruction memory or a program counter.
+## Scenario
 
-![The registers and ALU operations](docs/images/registers-and-alu.png)
+I wanted to understand what happens inside a computer when it processes data. I used Logisim to work with a small circuit where I could watch numbers enter registers, go through different operations, and come out as results. I also wanted to see what happens when I change the controls and how the circuit stores information.
 
-## What it does
+## Design Requirements
 
-* Stores two 8 bit values in Registers A and B
-* Runs 14 math and logic operations
-* Uses a 4 bit opcode to choose an operation
-* Shows the answer on an 8 bit output
-* Shows zero, carry, and comparison flags
-* Lets me save an ALU result back into Register A
-* Uses a clock and reset to control the registers
+The circuit needed to:
 
-## How to try it
+* Hold two 8 bit values in separate registers
+* Perform 14 arithmetic and logic operations
+* Select an operation with a 4 bit opcode
+* Show the selected result as an 8 bit value
+* Keep stored values when loading is disabled
+* Clear the registers with reset
+* Save an ALU result back into Register A
+* Show carry, zero, and comparison flags
 
-1. Open [the circuit file](circuit/8-bit-cpu-alu.circ) in Logisim 2.7.1.
-2. Make sure **Simulation Enabled** is checked under **Simulate**.
-3. Use the Poke Tool to set `DATA_A` to `00000011` and `DATA_B` to `00000010`.
-4. Set `LOAD_A` and `LOAD_B` to `1`. Keep `RESET` and `WRITEBACK_A` at `0`.
-5. Set `CLOCK` to `0`, then click it to change it to `1`.
-6. Set `OPCODE_4bit` to `0000` for addition.
+## Circuit Design
 
-Register A should show 3, Register B should show 2, and the output should show 5, or `00000101` in binary.
+| Part | Purpose |
+| --- | --- |
+| Register A | Stores the first number and can accept a saved ALU result |
+| Register B | Stores the second number |
+| ALU | Performs math, logic, and shift operations |
+| Opcode input | Chooses which operation to use |
+| Result MUX | Sends the selected ALU output to the result bus |
+| Clock and load controls | Decide when register values change |
+| Status flags | Show zero, carry, and comparison conditions |
 
-To try another operation, change the opcode. You do not have to reload the registers unless you want different input numbers.
+The 14 ALU outputs connect to a 16 input MUX. The two remaining opcode choices are reserved.
+
+## Design Choices
+
+**Clocked registers**
+
+I used separate load controls for Registers A and B. A register only takes a new value when loading is enabled and the clock rises. This makes it possible to test whether stored values stay in place.
+
+**Opcode selection**
+
+I used a 4 bit opcode so each operation could have its own number. The MUX chooses one result without needing to change the wiring for every test.
+
+**Result write back**
+
+I added a way to send the ALU result back into Register A. I kept this separate from the load control so selecting write back alone does not overwrite a value. The register still needs a clock edge to save it.
+
+**Status flags**
+
+I added flags to see when an answer is zero, when addition produces a carry, and how the two stored numbers compare. These outputs make it easier to understand what the circuit is doing.
 
 ## Operations
 
-| Opcode | Name | What it does |
-| :---: | :--- | :--- |
+| Opcode | Operation | Action |
+| --- | --- | --- |
 | `0000` | ADD | A plus B |
 | `0001` | INC | A plus 1 |
 | `0010` | DEC | A minus 1 |
@@ -47,26 +69,59 @@ To try another operation, change the opcode. You do not have to reload the regis
 | `1011` | NAND | Bitwise NAND |
 | `1100` | NOR | Bitwise NOR |
 | `1101` | XNOR | Bitwise XNOR |
-| `1110` | Reserved | No operation added |
-| `1111` | Reserved | No operation added |
+| `1110` | Reserved | Not implemented |
+| `1111` | Reserved | Not implemented |
 
-For CMP, the result output shows A while the comparison flags show whether A is equal to, less than, or greater than B.
+For CMP, the result bus shows A, while the comparison flags show whether A is equal to, less than, or greater than B.
 
-## Testing
+## Implementation
 
-I tested the circuit in Logisim with 21 checks. They covered all 14 operations, register loading and holding, reset, saving a result back into Register A, and the main status flags. Those checks passed on the version before I cleaned up the long MUX wires.
+I worked with two clocked 8 bit registers, built the operation circuits, and connected their outputs to the result MUX. I also connected the opcode input, control indicators, and status flags. The final wiring layout uses short, straight connections into the result MUX so the circuit is easier to follow.
 
-I then changed the MUX wiring layout to make the connections shorter and straighter. A comparison of the circuit files confirmed that the operations, component settings, and numbered MUX connections stayed the same. I have not repeated the full 21 tests on this latest layout.
+The editable Logisim file is available in the [circuit folder](circuit/8-bit-cpu-alu.circ).
 
-You can read the [test notes](docs/TESTING.md) and [circuit explanation](docs/ARCHITECTURE.md).
+## Validation
 
-## Screenshots
+I went through 21 manual checks in Logisim. All 14 ALU operations passed with Register A set to 3 and Register B set to 2. I also checked register loading, holding values, reset, write back, the zero and carry flags, and the comparison flags.
 
-![The output MUX and status flags](docs/images/mux-and-status-flags.png)
+One test found a problem with the shift direction. I corrected that setting and retested both shift operations successfully. After shortening and straightening the MUX wires, I reran all 21 tests on that final layout, and all 21 passed. I also captured screenshots during the final tests for SHR, XNOR, and write back.
 
-## Files
+[Read the test results](docs/TESTING.md)
 
-* [Circuit to open in Logisim](circuit/8-bit-cpu-alu.circ)
+## Final Test Screenshots
+
+These screenshots were captured while manually retesting the final straight-wire MUX circuit in Logisim 2.7.1.
+
+**SHR (opcode `0111`):** Register A = 3, Register B = 2, selected result `00000001` (1), and `CMP_GT` active.
+
+![SHR test result](screenshots/shr-result.webp)
+
+**XNOR (opcode `1101`):** Register A = 3, Register B = 2, selected result `11111110` (254), and `CMP_GT` active.
+
+![XNOR test result](screenshots/xnor-result.webp)
+
+**Register writeback:** Register A = 9, Register B = 5, selected ADD result `00001110` (14) after storing the previous sum of 9 back into Register A.
+
+![Writeback test result](screenshots/writeback-result.webp)
+
+All 21 manual tests passed on the final straight-wire layout. The screenshots show selected checkpoints, not every test.
+
+
+## Purpose and What I Learned
+
+I wanted to go beyond knowing that computers process information and understand how some of that work happens inside the hardware. This circuit helped me see how registers store values, how a clock controls when information changes, and how an opcode tells the ALU which operation to perform. I also learned why each connection and setting matters, especially when a shift operation gave the wrong result and I had to find the cause. Testing the circuit helped me understand how to check a system one part at a time instead of assuming everything works because it looks correct. These are useful foundations for understanding larger computing systems and the hardware that supports them.
+
+## Current Limitations
+
+This is a CPU datapath, not a complete programmable CPU. It does not include instruction memory, a program counter, or an instruction fetch cycle. Two opcode values are reserved. The manual tests cover selected values and edge cases, not every possible input combination. The final straight-wire layout passed all 21 planned manual tests in Logisim.
+
+## Next Steps
+
+I can improve this project by adding more test cases, documenting more input combinations, and adding clear screenshots of the final circuit. A larger version could also include instruction memory and a program counter.
+
+## Project Files
+
+* [Logisim circuit](circuit/8-bit-cpu-alu.circ)
 * [Circuit explanation](docs/ARCHITECTURE.md)
-* [Test results](docs/TESTING.md)
-* [More screenshots](docs/images)
+* [Testing record](docs/TESTING.md)
+* [Test screenshots](screenshots/)

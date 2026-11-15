@@ -1,0 +1,5 @@
+# Ignore local backups
+*.circ.bak
+*.circ~
+.DS_Store
+Thumbs.db
